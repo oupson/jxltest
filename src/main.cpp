@@ -1,4 +1,3 @@
-#include "Magick++/Include.h"
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
@@ -110,6 +109,8 @@ int main(void) {
             std::cerr << "Unknown status" << std::endl;
         }
     }
+
+    free(buffer_out);
 
     return 0;
 }
