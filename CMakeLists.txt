@@ -16,4 +16,4 @@ project(jxl-test CXX)
 
 add_executable(jxl-test src/main.cpp)
 
-target_link_libraries(jxl-test jxl ${ImageMagick_LIBRARIES} fmt)
+target_link_libraries(jxl-test jxl jxl_threads skcms-interface ${ImageMagick_LIBRARIES} fmt)
