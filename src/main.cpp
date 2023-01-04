@@ -1,4 +1,3 @@
-#include "jxl/resizable_parallel_runner.h"
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -12,7 +11,7 @@
 #include <jxl/decode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
 
-#include <Magick++.h>
+#include <png.h>
 
 #include <skcms.h>
 
@@ -67,7 +66,7 @@ int main(void) {
     if (JXL_DEC_SUCCESS !=
         JxlDecoderSetParallelRunner(dec.get(), JxlResizableParallelRunner,
                                     runner.get())) {
-        std::exit(-1);
+        return -1;
     }
 
     char data[1024];
@@ -168,9 +167,14 @@ int main(void) {
         } else if (status == JXL_DEC_FULL_IMAGE) {
             auto out_path = fmt::format("{:02}.png", out->index);
 
-            Magick::Image image(xsize, ysize, (out->has_alpha) ? "RGBA" : "RGB",
-                                Magick::StorageType::CharPixel, out->buffer);
-            image.write(out_path);
+            png_image image = {}; /* The control structure used by libpng */
+            image.width = xsize;
+            image.height = ysize;
+            image.version = PNG_IMAGE_VERSION;
+            image.format = PNG_FORMAT_RGBA;
+
+            png_image_write_to_file(&image, out_path.c_str(), 0, out->buffer, 0,
+                                    nullptr);
             std::cout << fmt::format("Saved frame {} to disk", out->index)
                       << std::endl;
             delete out;
