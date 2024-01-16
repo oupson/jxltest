@@ -13,13 +13,13 @@
 
 #include <png.h>
 
-#include <skcms.h>
+// #include <skcms.h>
 
 class ImageOut {
   public:
     uint8_t *buffer;
 
-    skcms_ICCProfile icc;
+    // skcms_ICCProfile icc;
     uint8_t *icc_buffer;
 
     bool has_alpha;
@@ -68,11 +68,13 @@ class ImageOut {
             return -1;
         }
 
+        /*
         if (!skcms_Parse((void *)this->icc_buffer, icc_size, &icc)) {
             std::cerr << "Invalid ICC profile from JXL image decoder"
                       << std::endl;
             return -1;
         }
+        */
         return 0;
     }
 };
@@ -80,16 +82,6 @@ class ImageOut {
 void image_out_callback(void *opaque_data, size_t x, size_t y,
                         size_t num_pixels, const void *pixels) {
     ImageOut *data = (ImageOut *)opaque_data;
-
-    skcms_Transform(
-        pixels, skcms_PixelFormat_RGBA_8888,
-        data->is_premultiplied ? skcms_AlphaFormat_PremulAsEncoded
-                               : skcms_AlphaFormat_Unpremul,
-        &data->icc,
-        data->buffer + ((y * data->width + x) * ((data->has_alpha) ? 4 : 3)),
-        data->has_alpha ? skcms_PixelFormat_RGBA_8888
-                        : skcms_PixelFormat_RGB_888,
-        skcms_AlphaFormat_Unpremul, skcms_sRGB_profile(), num_pixels);
 }
 
 int main(int argc, char **argv) {
@@ -170,13 +162,13 @@ int main(int argc, char **argv) {
         } else if (status == JXL_DEC_FRAME) {
             std::cout << "dec frame" << std::endl;
 
-            if (JXL_DEC_SUCCESS !=
-                JxlDecoderSetImageOutCallback(dec.get(), &format,
-                                              image_out_callback, out)) {
-                std::cerr << "JxlDecoderSetImageOutCallback failed"
-                          << std::endl;
-                return -1;
-            }
+            // if (JXL_DEC_SUCCESS !=
+            //    JxlDecoderSetImageOutCallback(dec.get(), &format,
+            //                                  image_out_callback, out)) {
+            //    std::cerr << "JxlDecoderSetImageOutCallback failed"
+            //              << std::endl;
+            //    return -1;
+            //}
         } else if (status == JXL_DEC_COLOR_ENCODING) {
             out->parse_icc_profile(dec.get(), format);
         } else if (status == JXL_DEC_BASIC_INFO) {
@@ -192,14 +184,33 @@ int main(int argc, char **argv) {
             JxlResizableParallelRunnerSetThreads(
                 runner.get(), JxlResizableParallelRunnerSuggestThreads(
                                   info.xsize, info.ysize));
-        } else if (status == JXL_DEC_FULL_IMAGE) {
+        } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
+            JxlDecoderSetImageOutBuffer(dec.get(), &format, out->buffer,
+                                        out->width * out->height * 4);
+        }
+
+        else if (status == JXL_DEC_FULL_IMAGE) {
             auto out_path = fmt::format("{:02}.png", index_image);
+
+            /*
+            skcms_Transform(out->buffer, skcms_PixelFormat_RGBA_8888,
+                            out->is_premultiplied
+                                ? skcms_AlphaFormat_PremulAsEncoded
+                                : skcms_AlphaFormat_Unpremul,
+                            &out->icc, out->buffer,
+                            out->has_alpha ? skcms_PixelFormat_RGBA_8888
+                                           : skcms_PixelFormat_RGB_888,
+                            skcms_AlphaFormat_Unpremul, skcms_sRGB_profile(),
+                            out->width * out->height);
+*/
 
             png_image image = {};
             image.width = out->width;
             image.height = out->height;
             image.version = PNG_IMAGE_VERSION;
             image.format = PNG_FORMAT_RGBA;
+
+            std::cout << out_path << std::endl;
 
             png_image_write_to_file(&image, out_path.c_str(), 0, out->buffer, 0,
                                     nullptr);
