@@ -6,6 +6,7 @@ include_directories("includes")
 
 project(jxl-test CXX)
 
-add_executable(jxl-test src/main.cpp)
+add_executable(jxl-test src/main.cpp
+        src/decode.cpp)
 
 target_link_libraries(jxl-test jxl jxl_threads png fmt)
